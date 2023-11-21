@@ -1,7 +1,6 @@
 import copy
 import math
 import numpy as np
-from functools import cached_property
 from collections import Counter, defaultdict
 
 from dataset_types import FeatureSet
@@ -15,10 +14,6 @@ class FeatureSetNormalizer:
 
         self.normalized = False
         self.shared_vocabulary = self._collect_shared_vocabulary()
-
-    @cached_property
-    def num_datapoints(self) -> int:
-        return len(self.feature_set)
 
     def perform_tf(self) -> FeatureSet:
         self._calculate_term_frequencies()
@@ -65,9 +60,10 @@ class FeatureSetNormalizer:
             for datapoint in self.feature_set
             for token in set(datapoint.contents)
         )
+        num_datapoints = len(self.feature_set)
 
         return {
-            token: math.log(self.num_datapoints / (doc_frequency + 1))
+            token: math.log(num_datapoints / (doc_frequency + 1))
             for token, doc_frequency in document_frequencies.items()
         }
     
