@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import numpy.typing as npt
 from typing_extensions import Self
 from functools import cached_property
 from sklearn.model_selection import StratifiedShuffleSplit
@@ -155,7 +156,7 @@ class FeatureSet(IterableSet):
             empty_space = " " * (max_length_set1 - len(token1))
             print(f"Set A: {token1} {empty_space}| Set B: {token2}")
 
-    def as_inputs_and_targets(self, target_variable_name: str):
+    def as_inputs_and_targets(self, target_variable_name: str) -> tuple[npt.NDArray, npt.NDArray]:
         inputs = [datapoint.contents for datapoint in self.datapoints]
         targets = [getattr(datapoint, target_variable_name)
                    for datapoint in self.datapoints]
