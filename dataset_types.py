@@ -41,7 +41,7 @@ class Review(TextualDataPoint):
         self.polarity = self._determine_polarity()
 
     def _parse_id(self) -> int:
-        return self.filename.split("_")[0]
+        return int(self.filename.split("_")[0])
 
     def _parse_rating(self) -> int:
         return int(self.filename.split("_")[1])
