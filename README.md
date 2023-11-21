@@ -6,7 +6,7 @@ Complete module labs up to week 4 (or 5)
 - [ ] AnalogySolver (opt)
 - [ ] WordNetPractice (opt)
 
-## [ ] Feature Generation
+## [x] Feature Generation
 Generate at least three feature sets using paths through the following set of choices:
 - Tokenization (must)
 - Lemmatization OR Stemming
@@ -20,7 +20,7 @@ Generate at least three feature sets using paths through the following set of ch
     - PPMI
 
 ## [ ] Naive Bayes
-- [ ] Implement Naive Bayes from scratch
+- [x] Implement Naive Bayes from scratch
 - [ ] Evaluate it on each of the three feature sets you've extracted (using the development splits)
 - [ ] Pick the best of the three feature sets you've experimented with and present the test split results
 - [ ] Evaluate the `scikit-learn` implementation of Naive Bayes on the same three feature sets and compare the results to your implementation
@@ -29,12 +29,12 @@ Generate at least three feature sets using paths through the following set of ch
 For this task, you can use `scikit-learn`'s implementation of the following models:
 
 Logistic Regression
-- [ ] Train a Logistic Regression classifier
+- [x] Train a Logistic Regression classifier
 - [ ] Evaluate each model on each of the three feature sets (using the respective development splits)
 - [ ] Pick the best of the three feature sets you've experimented with and present the test split results
 
 SVM
-- [ ] Train a SVM classifier
+- [x] Train a SVM classifier
 - [ ] Evaluate each model on each of the three feature sets (using the respective development splits)
 - [ ] Pick the best of the three feature sets you've experimented with and present the test split results
 
