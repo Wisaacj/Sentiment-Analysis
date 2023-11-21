@@ -1,7 +1,8 @@
 import copy
 import math
-from collections import Counter
+import numpy as np
 from functools import cached_property
+from collections import Counter, defaultdict
 
 from dataset_types import FeatureSet
 
@@ -80,3 +81,42 @@ class FeatureSetNormalizer:
                 token: count / num_tokens
                 for token, count in term_occurences.items()
             }
+
+    def perform_fast_tf_idf(self) -> FeatureSet:
+        vocab_to_index = {word: idx for idx, word in enumerate(self.shared_vocabulary)}
+        num_documents = len(self.feature_set)
+        num_vocab = len(self.shared_vocabulary)
+        
+        # TF matrix where each row corresponds to a document, and each column corresponds to a term.
+        tf_matrix = np.zeros(shape=(num_documents, num_vocab), dtype=float)
+        
+        # Document frequency (DF) counter for counting in how many documents a term appears.
+        df_counter = defaultdict(int)
+        
+        # Populate TF matrix and DF counter
+        for doc_idx, datapoint in enumerate(self.feature_set):
+            # Count term occurrences in the document
+            term_occurrences = Counter(datapoint.contents)
+            for term, count in term_occurrences.items():
+                if term in vocab_to_index:
+                    index = vocab_to_index[term]
+                    tf_matrix[doc_idx, index] = count  # Raw count for TF (to be normalized later)
+                    df_counter[term] += 1
+        
+        # Normalize TF matrix row-wise (divide by the number of terms in each document)
+        doc_lengths = np.array([len(dp.contents) for dp in self.feature_set])
+        tf_matrix = tf_matrix / doc_lengths[:, None]  # Broadcasting division
+        
+        # Convert the DF counter into an array of IDF values
+        # idf_array = np.log((1 + num_documents) / (1 + np.array([df_counter[term] for term in self.shared_vocabulary]))) + 1
+        idf_array = np.log((num_documents) / (1 + np.array([df_counter[term] for term in self.shared_vocabulary])))
+        
+        # TF-IDF calculation by multiplying the TF matrix by the IDF values
+        # The transpose on idf_array is necessary for broadcasting to correct dimension
+        tfidf_matrix = tf_matrix * idf_array
+        
+        # Update datapoint contents with tf-idf values
+        for doc_idx, datapoint in enumerate(self.feature_set):
+            datapoint.contents = tfidf_matrix[doc_idx, :] # .tolist()
+
+        return self.feature_set
