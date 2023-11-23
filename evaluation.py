@@ -1,5 +1,18 @@
 import numpy as np
+import pandas as pd
 import numpy.typing as npt
+from abc import ABC, abstractmethod
+
+
+class IClassifier(ABC):
+
+    @abstractmethod
+    def fit(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def predict(self):
+        raise NotImplementedError
 
 
 class ClassifierPerformanceSummary:
@@ -89,3 +102,69 @@ class BinaryClassifierEvaluator:
             self.calculate_recall(),
             self.calculate_f1()
         )
+    
+
+class BaseComparator:
+
+    def __init__(self, X_trains: list[npt.NDArray], y_trains: list[npt.NDArray]):
+        self.X_trains = X_trains
+        self.y_trains = y_trains
+
+
+class FeatureSetsComparator(BaseComparator):
+
+    def train_and_evaluate(
+            self, 
+            cls: IClassifier, 
+            X_train: npt.NDArray, 
+            y_train: npt.NDArray, 
+            X_test: npt.NDArray, 
+            y_test: npt.NDArray, 
+            hyperparams: dict
+            ) -> pd.DataFrame:
+        
+        classifier: IClassifier = cls(**hyperparams)
+        classifier.fit(X_train, y_train)
+
+        predictions = classifier.predict(X_test)
+        return BinaryClassifierEvaluator(y_test, predictions).get_summary().as_dict()
+    
+    def compare(
+            self, 
+            classifier_cls: IClassifier, 
+            X_tests: list[npt.NDArray], 
+            y_tests: list[npt.NDArray], 
+            hyperparams: dict
+            ) -> pd.DataFrame:
+        
+        performance_data = pd.DataFrame()
+        for i in range(len(self.X_trains)):
+            performance_data[f"{classifier_cls.__name__} - Set {i}"] = self.train_and_evaluate(
+                classifier_cls,
+                self.X_trains[i],
+                self.y_trains[i],
+                X_tests[i],
+                y_tests[i],
+                hyperparams
+            )
+
+        return performance_data.T
+
+
+class ClassifiersComparator(BaseComparator):
+
+    def compare(
+            self, 
+            classifier_classes: list[IClassifier], 
+            X_tests: list[npt.NDArray], 
+            y_tests: list[npt.NDArray]
+            ) -> pd.DataFrame:
+        
+        classifier_data = pd.DataFrame()
+        for cls in classifier_classes:
+            performance = FeatureSetsComparator(self.X_trains, self.y_trains)\
+                .compare(cls, X_tests, y_tests, {})
+            
+            classifier_data = pd.concat([classifier_data, performance], axis=0)
+
+        return classifier_data
