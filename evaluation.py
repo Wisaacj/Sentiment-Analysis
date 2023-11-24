@@ -105,13 +105,21 @@ class BinaryClassifierEvaluator:
     
 
 class BaseComparator:
+    """Base Comparator Class."""
 
     def __init__(self, X_trains: list[npt.NDArray], y_trains: list[npt.NDArray]):
+        """
+        Initialises a comparator. The length of X_trains must equal the length of y_trains.
+
+        :param X_trains: a list of training datasets.
+        :param y_trains: a list of training label sets.
+        """
         self.X_trains = X_trains
         self.y_trains = y_trains
 
 
 class FeatureSetsComparator(BaseComparator):
+    """Class for comparing feature sets."""
 
     def train_and_evaluate(
             self, 
@@ -152,6 +160,7 @@ class FeatureSetsComparator(BaseComparator):
 
 
 class ClassifiersComparator(BaseComparator):
+    """Class for comparing classifiers across multiple feature sets."""
 
     def compare(
             self, 
