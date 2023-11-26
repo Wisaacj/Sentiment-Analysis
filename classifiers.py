@@ -56,7 +56,7 @@ class NaiveBayesClassifier(IClassifier):
         # Calculate the log probabilities of each class for each sample.
         logits = log_class_priors + (data @ np.log(self.class_conditional_feature_likelihoods).T)
 
-        # For each sample, get the index of the maximum logit. These are the predicted classes.
+        # For each sample, get the index of the maximum logit (i.e., the predicted class)
         return np.argmax(logits, axis=1)
 
     def legacy_predict(self, data: npt.NDArray):
