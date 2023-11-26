@@ -1,3 +1,7 @@
-/venv/*
-/data/feature_sets/*
-/__pycache__/*
+venv/*
+__pycache__/*
+
+data/*
+!data/neg
+!data/pos
+!data/bert
