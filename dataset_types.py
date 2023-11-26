@@ -1,6 +1,8 @@
 import os
 import numpy as np
+import pandas as pd
 import numpy.typing as npt
+from typing import TypeAlias, Tuple
 from typing_extensions import Self
 from functools import cached_property
 from sklearn.model_selection import StratifiedShuffleSplit
@@ -10,9 +12,7 @@ class TextualDataPoint:
 
     def __init__(self, file_path: str):
         self.file_path = file_path
-        self.contents: str | list[str] = self._extract_contents()
-        """The contents of the datapoint; initially a string, and then a list of tokens
-        after the datapoint has been tokenized."""
+        self.contents = self._extract_contents()
 
     @cached_property
     def basename(self) -> str:
@@ -67,7 +67,7 @@ class Review(TextualDataPoint):
 
 class IterableSet:
 
-    datapoint_class = TextualDataPoint
+    datapoint_class: TypeAlias = TextualDataPoint
 
     def __init__(self, datapoints: list[datapoint_class]):
         self.datapoints = datapoints
@@ -104,9 +104,97 @@ class IterableSet:
             datapoint.as_dict()
             for datapoint in self.datapoints
         ]
+    
+    def as_df(self) -> pd.DataFrame:
+        return pd.DataFrame(self.as_lower_representation())
+
+    def to_csv(self, file_path: str) -> None:
+        return self.as_df().to_csv(file_path)
+    
+
+class SplitableSet(IterableSet):
+
+    def to_csv_as_train_dev_test_sets(
+            self, 
+            output_dir: str, 
+            target_variable_name: str, 
+            dev_test_size: float = 0.3, 
+            random_state: int = 42
+        ) -> None:
+        train, dev, test = self.as_train_dev_test_dfs(
+            target_variable_name, dev_test_size, random_state)
+        
+        if not os.path.exists(output_dir):
+            os.mkdir(output_dir)
+
+        train.to_csv(output_dir+"train.csv")
+        dev.to_csv(output_dir+"dev.csv")
+        test.to_csv(output_dir+"test.csv")
+
+    def as_training_dataframe(self, target_variable_name: str) -> pd.DataFrame:
+        salient_columns = ["contents", target_variable_name]
+        column_rename_map = {"contents": "X", target_variable_name: "y"}
+
+        training_dataframe = self.as_df()[salient_columns]
+        training_dataframe.rename(columns=column_rename_map, inplace=True)
+
+        return training_dataframe
+    
+    def as_train_dev_test_arrays(
+            self, 
+            target_variable_name: str, 
+            dev_test_size: float = 0.3, 
+            random_state: int = 42
+        ) -> Tuple[npt.NDArray, npt.NDArray, npt.NDArray]:
+        train, dev, test = self.as_train_dev_test_dfs(
+            target_variable_name,
+            dev_test_size,
+            random_state
+        )
+
+        return (
+            self._convert_to_nd_array(train.X),
+            train.y.values,
+            self._convert_to_nd_array(dev.X),
+            dev.y.values,
+            self._convert_to_nd_array(test.X),
+            test.y.values,
+        )
+
+    def as_train_dev_test_dfs(
+            self, 
+            target_variable_name: str, 
+            dev_test_size: float = 0.3, 
+            random_state: int = 42
+        ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+        X_y_entire = self.as_training_dataframe(target_variable_name)
+
+        # Split the data into train and dev+test sets in a ratio of:
+        #  -> (1-dev_test_size):(dev_test_size)
+        initial_splitter = StratifiedShuffleSplit(
+            n_splits=1, test_size=dev_test_size, random_state=random_state)
+        train_indexes, test_indexes = next(
+            initial_splitter.split(X_y_entire.X, X_y_entire.y))
+
+        X_y_train = X_y_entire.iloc[train_indexes]
+        X_y_test_dev = X_y_entire.iloc[test_indexes]
+
+        # Split the dev + test set into dev and test sets in a 50:50 ratio.
+        final_splitter = StratifiedShuffleSplit(
+            n_splits=1, test_size=0.5, random_state=random_state)
+        dev_indexes, test_indexes = next(
+            final_splitter.split(X_y_test_dev.X, X_y_test_dev.y))
+
+        X_y_dev = X_y_test_dev.iloc[dev_indexes]
+        X_y_test = X_y_test_dev.iloc[test_indexes]
+
+        return X_y_train, X_y_dev, X_y_test
+
+    def _convert_to_nd_array(self, series: pd.Series) -> npt.NDArray:
+        return np.vstack(series.apply(np.array))
 
 
-class DataSet(IterableSet):
+class DataSet(SplitableSet):
 
     def __init__(self, dirs: list[str]):
         super().__init__(None)
@@ -138,10 +226,10 @@ class DataSet(IterableSet):
 
 class ReviewDataSet(DataSet):
 
-    datapoint_class = Review
+    datapoint_class: TypeAlias = Review
 
 
-class FeatureSet(IterableSet):
+class FeatureSet(SplitableSet):
 
     def __init__(self, dataset: DataSet):
         super().__init__(dataset.datapoints)
@@ -151,37 +239,7 @@ class FeatureSet(IterableSet):
         set2_dp1 = other_set.first().contents
         max_length_set1 = len(max(set1_dp1, key=len))
 
-        print("Comparing the first datapoint in feature sets A and B respectively:")
+        print("Comparing feature sets Self and Other:")
         for token1, token2 in zip(set1_dp1, set2_dp1):
             empty_space = " " * (max_length_set1 - len(token1))
             print(f"Set A: {token1} {empty_space}| Set B: {token2}")
-
-    def as_inputs_and_targets(self, target_variable_name: str) -> tuple[npt.NDArray, npt.NDArray]:
-        inputs = [datapoint.contents for datapoint in self.datapoints]
-        targets = [getattr(datapoint, target_variable_name)
-                   for datapoint in self.datapoints]
-
-        return np.array(inputs), np.array(targets)
-
-    def split_into_train_dev_test_sets(self, target_variable_name: str, dev_test_size: float, random_state: int = 42):
-        inputs, targets = self.as_inputs_and_targets(target_variable_name)
-
-        # Split the data into train and dev+test sets in a ratio of (1-dev_test_size):(dev_test_size).
-        initial_splitter = StratifiedShuffleSplit(
-            n_splits=1, test_size=dev_test_size, random_state=random_state)
-        train_indexes, test_indexes = next(
-            initial_splitter.split(inputs, targets))
-
-        X_train, y_train = inputs[train_indexes], targets[train_indexes]
-        X_test_dev, y_test_dev = inputs[test_indexes], targets[test_indexes]
-
-        # Split the dev+test set into dev and test sets in a 50:50 ratio.
-        final_splitter = StratifiedShuffleSplit(
-            n_splits=1, test_size=0.5, random_state=random_state)
-        dev_indexes, test_indexes = next(
-            final_splitter.split(X_test_dev, y_test_dev))
-
-        X_dev, y_dev = X_test_dev[dev_indexes], y_test_dev[dev_indexes]
-        X_test, y_test = X_test_dev[test_indexes], y_test_dev[test_indexes]
-
-        return X_train, y_train, X_dev, y_dev, X_test, y_test
