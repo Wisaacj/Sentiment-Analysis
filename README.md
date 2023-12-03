@@ -45,9 +45,9 @@ Subsequently, you should perform hyperparameter optimisation on your best perfor
 
 _Note that you should use 1-hot embeddings based on your features for input._
 
-## [ ] BERT
-- [ ] Follow the given tutorials and train BERT to perform sentiment analysis over the same train/dev/test splits of the feature sets.
-- [ ] Experiment with both the cased and uncased version of BERT
+## [x] BERT
+- [x] Follow the given tutorials and train BERT to perform sentiment analysis over the same train/dev/test splits of the feature sets.
+- [x] Experiment with both the cased and uncased version of BERT
 
 ## [ ] ChatGPT
 **TODO**: Come up with a plan.

@@ -5,3 +5,7 @@ data/*
 !data/neg
 !data/pos
 !data/bert
+
+fine_tuning/
+fine_tuning_cased/
+fine_tuning_uncased/
