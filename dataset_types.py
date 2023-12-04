@@ -1,5 +1,5 @@
 import os
-import numpy as np
+import utils
 import pandas as pd
 import numpy.typing as npt
 from typing import TypeAlias, Tuple
@@ -140,7 +140,7 @@ class SplitableSet(IterableSet):
 
         return training_dataframe
     
-    def as_train_dev_test_arrays(
+    def split_into_train_dev_test_arrays(
             self, 
             target_variable_name: str, 
             dev_test_size: float = 0.3, 
@@ -153,26 +153,26 @@ class SplitableSet(IterableSet):
         )
 
         return (
-            self._convert_to_nd_array(train.X),
+            utils.convert_to_nd_array(train.X),
             train.y.values,
-            self._convert_to_nd_array(dev.X),
+            utils.convert_to_nd_array(dev.X),
             dev.y.values,
-            self._convert_to_nd_array(test.X),
+            utils.convert_to_nd_array(test.X),
             test.y.values,
         )
 
-    def as_train_dev_test_dfs(
+    def split_into_train_dev_test_dfs(
             self, 
             target_variable_name: str, 
-            dev_test_size: float = 0.3, 
+            dev_and_test_size: float = 0.3, 
             random_state: int = 42
         ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         X_y_entire = self.as_training_dataframe(target_variable_name)
 
         # Split the data into train and dev+test sets in a ratio of:
-        #  -> (1-dev_test_size):(dev_test_size)
+        #  -> (1-dev_and_test_size):(dev_and_test_size)
         initial_splitter = StratifiedShuffleSplit(
-            n_splits=1, test_size=dev_test_size, random_state=random_state)
+            n_splits=1, test_size=dev_and_test_size, random_state=random_state)
         train_indexes, test_indexes = next(
             initial_splitter.split(X_y_entire.X, X_y_entire.y))
 
@@ -189,9 +189,6 @@ class SplitableSet(IterableSet):
         X_y_test = X_y_test_dev.iloc[test_indexes]
 
         return X_y_train, X_y_dev, X_y_test
-
-    def _convert_to_nd_array(self, series: pd.Series) -> npt.NDArray:
-        return np.vstack(series.apply(np.array))
 
 
 class DataSet(SplitableSet):

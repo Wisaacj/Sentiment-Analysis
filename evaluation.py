@@ -1,18 +1,8 @@
 import numpy as np
 import pandas as pd
 import numpy.typing as npt
-from abc import ABC, abstractmethod
 
-
-class IClassifier(ABC):
-
-    @abstractmethod
-    def fit(self):
-        raise NotImplementedError
-
-    @abstractmethod
-    def predict(self):
-        raise NotImplementedError
+from classifiers import IClassifier
 
 
 class ClassifierPerformanceSummary:
@@ -118,7 +108,7 @@ class BaseComparator:
         self.y_trains = y_trains
 
 
-class FeatureSetsComparator(BaseComparator):
+class FeatureSetComparator(BaseComparator):
     """Class for comparing feature sets."""
 
     def train_and_evaluate(
@@ -159,7 +149,7 @@ class FeatureSetsComparator(BaseComparator):
         return performance_data.T
 
 
-class ClassifiersComparator(BaseComparator):
+class ClassifierComparator(BaseComparator):
     """Class for comparing classifiers across multiple feature sets."""
 
     def compare(
@@ -171,7 +161,7 @@ class ClassifiersComparator(BaseComparator):
         
         classifier_data = pd.DataFrame()
         for cls in classifier_classes:
-            performance = FeatureSetsComparator(self.X_trains, self.y_trains)\
+            performance = FeatureSetComparator(self.X_trains, self.y_trains)\
                 .compare(cls, X_tests, y_tests, {})
             
             classifier_data = pd.concat([classifier_data, performance], axis=0)
