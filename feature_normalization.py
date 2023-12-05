@@ -23,6 +23,7 @@ class FeatureSetNormalizer:
     def perform_tf_norm(self, drop_percentile: float = 0) -> FeatureSet:
         _, tf_matrix = self._calculate_tf_idf_scores(drop_percentile)
 
+        # Update the datapoint's contents with tf values
         for doc_idx, datapoint in enumerate(self.feature_set):
             datapoint.contents = tf_matrix[doc_idx, :]
 
@@ -31,7 +32,7 @@ class FeatureSetNormalizer:
     def perform_tf_idf_norm(self, drop_percentile: float = 0) -> FeatureSet:
         tfidf_matrix, _ = self._calculate_tf_idf_scores(drop_percentile)
 
-        # Update datapoint contents with tf-idf values
+        # Update the datapoint's contents with tf-idf values
         for doc_idx, datapoint in enumerate(self.feature_set):
             datapoint.contents = tfidf_matrix[doc_idx, :]
 

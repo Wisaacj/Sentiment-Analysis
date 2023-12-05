@@ -140,13 +140,42 @@ class SplitableSet(IterableSet):
 
         return training_dataframe
     
+    def split_into_train_dev_test_dfs(
+            self, 
+            target_variable_name: str, 
+            dev_and_test_size: float = 0.3, 
+            random_state: int = 42
+        ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+        entire_df = self.as_training_dataframe(target_variable_name)
+
+        # Split the data into train and dev+test sets in a ratio of:
+        #  -> (1-dev_and_test_size):(dev_and_test_size)
+        initial_splitter = StratifiedShuffleSplit(
+            n_splits=1, test_size=dev_and_test_size, random_state=random_state)
+        train_indexes, test_indexes = next(
+            initial_splitter.split(entire_df.X, entire_df.y))
+
+        train_df = entire_df.iloc[train_indexes]
+        dev_and_test_df = entire_df.iloc[test_indexes]
+
+        # Split the dev + test set into dev and test sets in a 50:50 ratio.
+        final_splitter = StratifiedShuffleSplit(
+            n_splits=1, test_size=0.5, random_state=random_state)
+        dev_indexes, test_indexes = next(
+            final_splitter.split(dev_and_test_df.X, dev_and_test_df.y))
+
+        dev_df = dev_and_test_df.iloc[dev_indexes]
+        test_df = dev_and_test_df.iloc[test_indexes]
+
+        return train_df, dev_df, test_df
+    
     def split_into_train_dev_test_arrays(
             self, 
             target_variable_name: str, 
             dev_test_size: float = 0.3, 
             random_state: int = 42
         ) -> Tuple[npt.NDArray, npt.NDArray, npt.NDArray]:
-        train, dev, test = self.as_train_dev_test_dfs(
+        train, dev, test = self.split_into_train_dev_test_dfs(
             target_variable_name,
             dev_test_size,
             random_state
@@ -160,35 +189,6 @@ class SplitableSet(IterableSet):
             utils.convert_to_nd_array(test.X),
             test.y.values,
         )
-
-    def split_into_train_dev_test_dfs(
-            self, 
-            target_variable_name: str, 
-            dev_and_test_size: float = 0.3, 
-            random_state: int = 42
-        ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-        X_y_entire = self.as_training_dataframe(target_variable_name)
-
-        # Split the data into train and dev+test sets in a ratio of:
-        #  -> (1-dev_and_test_size):(dev_and_test_size)
-        initial_splitter = StratifiedShuffleSplit(
-            n_splits=1, test_size=dev_and_test_size, random_state=random_state)
-        train_indexes, test_indexes = next(
-            initial_splitter.split(X_y_entire.X, X_y_entire.y))
-
-        X_y_train = X_y_entire.iloc[train_indexes]
-        X_y_test_dev = X_y_entire.iloc[test_indexes]
-
-        # Split the dev + test set into dev and test sets in a 50:50 ratio.
-        final_splitter = StratifiedShuffleSplit(
-            n_splits=1, test_size=0.5, random_state=random_state)
-        dev_indexes, test_indexes = next(
-            final_splitter.split(X_y_test_dev.X, X_y_test_dev.y))
-
-        X_y_dev = X_y_test_dev.iloc[dev_indexes]
-        X_y_test = X_y_test_dev.iloc[test_indexes]
-
-        return X_y_train, X_y_dev, X_y_test
 
 
 class DataSet(SplitableSet):
