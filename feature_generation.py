@@ -59,7 +59,11 @@ class FeatureSetGenerator(Preprocessor):
         distinct_stopwords = set(stopwords.words('english'))
 
         for datapoint in self.dataset:
-            datapoint.contents = [token for token in datapoint.contents if token not in distinct_stopwords]
+            datapoint.contents = [
+                # Calling `lower` on `token` because all stopwords are in lowercase.
+                # This thus removes all stopwords irrespective of their capitalisation.
+                token for token in datapoint.contents if token.lower() not in distinct_stopwords
+            ]
 
         return self
     
