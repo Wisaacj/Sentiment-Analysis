@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import numpy.typing as npt
+from string import ascii_uppercase
 
 from classifiers import IClassifier
 
@@ -28,6 +29,9 @@ class ClassifierPerformanceSummary:
             'recall': self.recall,
             'f1': self.f1
         }
+
+    def as_df(self) -> pd.DataFrame:
+        return pd.DataFrame(self.as_dict(), index=[0])
 
 
 class BinaryClassifierEvaluator:
@@ -137,7 +141,8 @@ class FeatureSetComparator(BaseComparator):
         
         performance_data = pd.DataFrame()
         for i in range(len(self.X_trains)):
-            performance_data[f"{classifier_cls.__name__} - Set {i}"] = self.train_and_evaluate(
+            row_index = f"{classifier_cls.__name__} - Set {ascii_uppercase[i]}"
+            performance_data[row_index] = self.train_and_evaluate(
                 classifier_cls,
                 self.X_trains[i],
                 self.y_trains[i],
